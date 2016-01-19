@@ -18,8 +18,8 @@ DEBUG = -g -O0
 CFLAGS += $(WARNING_FLAGS) -I$(INCLUDE_PATH) $(DEBUG)
 
 
-SRC_FILES = main.c app.c
-OBJ_FILES = main.o app.o
+SRC_FILES = main.c app.c msg_proc.c
+OBJ_FILES = main.o app.o msg_proc.o
 OUTPUT_FILE = fax_bu_app
 
 all: fax_bu_app
@@ -28,6 +28,9 @@ main.o: main.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 app.o: app.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+msg_proc.o: msg_proc.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 

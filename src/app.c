@@ -43,8 +43,3 @@ void app_trace(int level, char *format, ...)
 
 	printf("%s", str);
 }
-
-int get_1()
-{
-	return 1;
-}
