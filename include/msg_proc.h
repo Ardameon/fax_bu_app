@@ -4,6 +4,17 @@
 #include <stdint.h>
 #include "fax_bu.h"
 
+#define MSG_STR_SIG_SETUP "SETUP"
+#define MSG_STR_SIG_OK    "OK"
+#define MSG_STR_SIG_ERROR "ERROR"
+
+#define MSG_STR_ERROR_INTERNAL "INTERNAL_ERR"
+#define MSG_STR_ERROR_UNKNOWN  "UNKNOWN_ERR"
+
+#define MSG_STR_MODE_GG "GG"
+#define MSG_STR_MODE_GT "GT"
+#define MSG_STR_MODE_UN "UN"
+
 typedef enum {
     FAX_MSG_SETUP,
     FAX_MSG_OK,
@@ -11,17 +22,17 @@ typedef enum {
 } sig_msg_type_e;
 
 typedef enum {
+    FAX_ERROR_UNKNOWN,
     FAX_ERROR_INTERNAL
 } sig_msg_error_e;
 
 typedef struct sig_message_t {
     sig_msg_type_e type;
-    uint32_t       call_id;
+    char           call_id[32];
 } sig_message_t;
 
 typedef struct sig_message_setup_t {
-    sig_msg_type_e type;
-    uint32_t       call_id;
+    sig_message_t  msg;
     uint32_t       src_ip;
     uint16_t       src_port;
     uint32_t       dst_ip;
@@ -30,20 +41,21 @@ typedef struct sig_message_setup_t {
 } sig_message_setup_t;
 
 typedef struct sig_message_ok_t {
-    sig_msg_type_e type;
-    uint32_t       call_id;
+    sig_message_t  msg;
     uint32_t       ip;
     uint16_t       port;
 } sig_message_ok_t;
 
 typedef struct sig_message_error_t {
-    sig_msg_type_e  type;
-    uint32_t        call_id;
+    sig_message_t  msg;
     sig_msg_error_e err;
 
 } sig_message_error_t;
 
-int  msgCreate(sig_message_t *message, uint8_t **msg_buf);
-void msgDestroy(uint8_t *msg_buf);
+int  msgBufCreate(const sig_message_t *message, uint8_t **msg_buf);
+void msgBufDestroy(uint8_t *msg_buf);
+
+int  msgParse(const uint8_t *msg_buf, sig_message_t **message);
+void msgDestroy(sig_message_t *message);
 
 #endif // MSG_PROC_H
