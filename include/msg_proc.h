@@ -49,7 +49,6 @@ typedef struct sig_message_ok_t {
 typedef struct sig_message_error_t {
     sig_message_t  msg;
     sig_msg_error_e err;
-
 } sig_message_error_t;
 
 int  msgBufCreate(const sig_message_t *message, uint8_t **msg_buf);
@@ -57,5 +56,7 @@ void msgBufDestroy(uint8_t *msg_buf);
 
 int  msgParse(const uint8_t *msg_buf, sig_message_t **message);
 void msgDestroy(sig_message_t *message);
+
+char *ip2str(uint32_t ip, int id);
 
 #endif // MSG_PROC_H
