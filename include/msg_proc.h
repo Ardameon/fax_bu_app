@@ -51,11 +51,11 @@ typedef struct sig_message_error_t {
     sig_msg_error_e err;
 } sig_message_error_t;
 
-int  msgBufCreate(const sig_message_t *message, uint8_t **msg_buf);
-void msgBufDestroy(uint8_t *msg_buf);
+int  msg_bufCreate(const sig_message_t *message, uint8_t **msg_buf);
+void msg_bufDestroy(uint8_t *msg_buf);
 
-int  msgParse(const uint8_t *msg_buf, sig_message_t **message);
-void msgDestroy(sig_message_t *message);
+int  msg_parse(const uint8_t *msg_buf, sig_message_t **message);
+void msg_destroy(sig_message_t *message);
 
 char *ip2str(uint32_t ip, int id);
 

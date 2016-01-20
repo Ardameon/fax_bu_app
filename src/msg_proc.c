@@ -13,7 +13,7 @@
 #define IP2STR_MAX 4
 
 
-static const char *msgFaxModeStr(fax_mode_e mode)
+static const char *msg_faxModeStr(fax_mode_e mode)
 {
     switch (mode)
     {
@@ -24,7 +24,7 @@ static const char *msgFaxModeStr(fax_mode_e mode)
 }
 
 
-static const char *msgErrStr(sig_msg_error_e err)
+static const char *msg_errStr(sig_msg_error_e err)
 {
     switch (err)
     {
@@ -55,7 +55,7 @@ char *ip2str(uint32_t ip, int id)
 /*============================================================================*/
 
 
-static int msgBufCreateSetup(const sig_message_setup_t *message,
+static int msg_bufCreateSetup(const sig_message_setup_t *message,
                              uint8_t *msg_buf)
 {
     int len = 0;
@@ -66,7 +66,7 @@ static int msgBufCreateSetup(const sig_message_setup_t *message,
             len = snprintf((char *)msg_buf,
                            MESSAGE_BUF_LEN, "%s %s %s %s:%u %s:%u\r\n",
                            MSG_STR_SIG_SETUP, message->msg.call_id,
-                           msgFaxModeStr(message->mode),
+                           msg_faxModeStr(message->mode),
                            ip2str(message->src_ip, 0), message->src_port,
                            ip2str(message->dst_ip, 1), message->dst_port);
             break;
@@ -75,7 +75,7 @@ static int msgBufCreateSetup(const sig_message_setup_t *message,
             len = snprintf((char *)msg_buf,
                            MESSAGE_BUF_LEN, "%s %s %s %s:%u\r\n",
                            MSG_STR_SIG_SETUP, message->msg.call_id,
-                           msgFaxModeStr(message->mode),
+                           msg_faxModeStr(message->mode),
                            ip2str(message->src_ip, 0), message->src_port);
             break;
 
@@ -88,20 +88,20 @@ static int msgBufCreateSetup(const sig_message_setup_t *message,
 }
 
 
-static int msgBufCreateError(const sig_message_error_t *message,
+static int msg_bufCreateError(const sig_message_error_t *message,
                              uint8_t *msg_buf)
 {
     int len = 0;
 
     len = snprintf((char *)msg_buf, MESSAGE_BUF_LEN, "%s %s %s\r\n",
                    MSG_STR_SIG_ERROR, message->msg.call_id,
-                   msgErrStr(message->err));
+                   msg_errStr(message->err));
 
     return len;
 }
 
 
-static int msgBufCreateOk(const sig_message_ok_t *message, uint8_t *msg_buf)
+static int msg_bufCreateOk(const sig_message_ok_t *message, uint8_t *msg_buf)
 {
     int len = 0;
 
@@ -113,7 +113,7 @@ static int msgBufCreateOk(const sig_message_ok_t *message, uint8_t *msg_buf)
 }
 
 
-int  msgBufCreate(const sig_message_t *message, uint8_t **msg_buf)
+int  msg_bufCreate(const sig_message_t *message, uint8_t **msg_buf)
 {
     int ret_val = 0;
     uint8_t *buf = NULL;
@@ -132,15 +132,15 @@ int  msgBufCreate(const sig_message_t *message, uint8_t **msg_buf)
     switch(message->type)
     {
         case FAX_MSG_SETUP:
-            ret_val = msgBufCreateSetup((sig_message_setup_t *)message, buf);
+            ret_val = msg_bufCreateSetup((sig_message_setup_t *)message, buf);
             break;
 
         case FAX_MSG_OK:
-            ret_val = msgBufCreateOk((sig_message_ok_t *)message, buf);
+            ret_val = msg_bufCreateOk((sig_message_ok_t *)message, buf);
             break;
 
         case FAX_MSG_ERROR:
-            ret_val = msgBufCreateError((sig_message_error_t *)message, buf);
+            ret_val = msg_bufCreateError((sig_message_error_t *)message, buf);
             break;
 
         default:
@@ -158,7 +158,7 @@ _exit:
 /*============================================================================*/
 
 
-void msgBufDestroy(uint8_t *msg_buf)
+void msg_bufDestroy(uint8_t *msg_buf)
 {
     if(msg_buf) free(msg_buf);
 }
@@ -167,7 +167,7 @@ void msgBufDestroy(uint8_t *msg_buf)
 /*============================================================================*/
 
 
-static int msgParseSetup(const char *msg_payload, sig_message_setup_t **message)
+static int msg_parseSetup(const char *msg_payload, sig_message_setup_t **message)
 {
     int ret_val = 0, res = 0;
     sig_message_setup_t *msg;
@@ -232,7 +232,7 @@ _exit:
 }
 
 
-static int msgParseOk(const char *msg_payload, sig_message_ok_t **message)
+static int msg_parseOk(const char *msg_payload, sig_message_ok_t **message)
 {
     int ret_val = 0, res = 0;
     sig_message_ok_t *msg;
@@ -268,7 +268,7 @@ _exit:
 }
 
 
-static int msgParseError(const char *msg_payload, sig_message_error_t **message)
+static int msg_parseError(const char *msg_payload, sig_message_error_t **message)
 {
     int ret_val = 0, res = 0;
     sig_message_error_t *msg;
@@ -300,7 +300,7 @@ _exit:
 }
 
 
-int msgParse(const uint8_t *msg_buf, sig_message_t **message)
+int msg_parse(const uint8_t *msg_buf, sig_message_t **message)
 {
     int ret_val = 0;
     char msg_type_str[32];
@@ -326,13 +326,13 @@ int msgParse(const uint8_t *msg_buf, sig_message_t **message)
 
     if(!strcmp(msg_type_str, MSG_STR_SIG_SETUP))
     {
-        res = msgParseSetup(msg_payload, (sig_message_setup_t **)message);
+        res = msg_parseSetup(msg_payload, (sig_message_setup_t **)message);
         msg_type = FAX_MSG_SETUP;
     } else if(!strcmp(msg_type_str, MSG_STR_SIG_OK)) {
-        res = msgParseOk(msg_payload, (sig_message_ok_t **)message);
+        res = msg_parseOk(msg_payload, (sig_message_ok_t **)message);
         msg_type = FAX_MSG_OK;
     } else if(!strcmp(msg_type_str, MSG_STR_SIG_ERROR)) {
-        res = msgParseError(msg_payload, (sig_message_error_t **)message);
+        res = msg_parseError(msg_payload, (sig_message_error_t **)message);
         msg_type = FAX_MSG_ERROR;
     } else{
         ret_val = -3; goto _exit;
@@ -354,7 +354,7 @@ _exit:
 /*============================================================================*/
 
 
-void msgDestroy(sig_message_t *message)
+void msg_destroy(sig_message_t *message)
 {
     if(message) free(message);
 }
