@@ -4,6 +4,7 @@
 
 #define IP_MAX_LEN 15
 #define NET_IFACE "eth0"
+#define CTRL_FD_IDX 0
 
 static cfg_t app_config;
 
@@ -87,50 +88,37 @@ static uint32_t app_getLocalIP(const char *iface)
 static int app_InitControlFD()
 {
     int ret_val = 0;
-    int sock = -1;
-    struct sockaddr_in local_addr;
-    int reuse = 1;
+    int res;
+    session_t *session = NULL;
     cfg_t *cfg = app_getCfg();
 
-    app_trace(TRACE_INFO, "%s: Create control listener: %s:%u", __func__,
+    app_trace(TRACE_INFO, "%s: Create control session: %s:%u", __func__,
               ip2str(cfg->local_ip, 0), cfg->local_port);
 
-    local_addr.sin_family = AF_INET;
-    local_addr.sin_addr.s_addr = htonl(cfg->local_ip);
-    local_addr.sin_port = htons(cfg->local_port);
-
-    if((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    session = session_create(FAX_SESSION_MODE_CTRL, CTRL_FD_IDX,
+                             FAX_SESSION_DIR_IN);
+    if(!session)
     {
-        app_trace(TRACE_ERR, "%s: socket() failed: %s",
-                  __func__, strerror(errno));
+        app_trace(TRACE_ERR, "%s: control session creating failed", __func__);
         ret_val = -1; goto _exit;
     }
 
-    fcntl(sock, F_SETFL, O_NONBLOCK);
-
-    if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+    res = session_initCtrl(session);
+    if(res)
     {
-        app_trace(TRACE_ERR, "%s: setsockopt() failed: %s",
-                  __func__, strerror(errno));
+        app_trace(TRACE_ERR, "%s: control session init failed (%d)",
+                  __func__, res);
+        session_destroy(session);
         ret_val = -2; goto _exit;
     }
 
-    if(bind(sock, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0)
-    {
-        app_trace(TRACE_ERR, "%s: bind() failed: %s",
-                  __func__, strerror(errno));
-        ret_val = -3; goto _exit;
-    }
+    cfg->pfds[CTRL_FD_IDX].fd = session->fds;
+    cfg->pfds[CTRL_FD_IDX].events = POLLIN;
 
-    cfg->pfds[0].fd = sock;
-    cfg->pfds[0].events = POLLIN;
-
-    cfg->session[0] = calloc(1, sizeof(**(cfg->session)));
-    cfg->session[0]->mode = FAX_SESSION_MODE_CTRL;
     cfg->session_cnt = 1;
 
-    app_trace(TRACE_INFO, "%s: Control descriptor created: fd = %d",
-              __func__, sock);
+    app_trace(TRACE_INFO, "%s: control session created: id:%04x fd = %d",
+              __func__, session->ses_id, session->fds);
 
 _exit:
     return ret_val;
@@ -221,8 +209,9 @@ void app_cfgDestroy()
 
 	for(i = 0; i < cfg->session_cnt; i++)
 	{
-		if(cfg->pfds[i].fd != -1) close(cfg->pfds[i].fd);
-		if(cfg->session[i] != NULL) free(cfg->session[i]);
+		session_destroy(cfg->session[i]);
+		cfg->session[i] = NULL;
+		cfg->pfds->fd = -1;
 	}
 
 	free(cfg->pfds);

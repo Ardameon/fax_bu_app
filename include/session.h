@@ -24,11 +24,18 @@ typedef enum {
     FAX_SESSION_MODE_TERMINAL
 } session_mode_e;
 
+typedef enum {
+    FAX_SESSION_DIR_OUT,
+    FAX_SESSION_DIR_IN,
+} session_dir_e;
+
 typedef struct session_t {
     int  ses_id;
     int  peer_ses_id;
     char call_id[32];
     int  sidx;
+
+    int  fds;
 
     session_state_e state;
 
@@ -37,5 +44,11 @@ typedef struct session_t {
     uint16_t     FLAG_IN:1,
                  FLAG_RESERV:15;
 } session_t;
+
+
+session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir);
+void session_destroy(session_t *session);
+
+int session_initCtrl(session_t *session);
 
 #endif // SESSION_H
