@@ -5,8 +5,12 @@
 #define IP_MAX_LEN 15
 #define NET_IFACE "eth0"
 #define CTRL_FD_IDX 0
+#define POLL_TIMEOUT 20 /* msec */
 
 static cfg_t app_config;
+
+uint8_t app_run = 1;
+
 
 
 /*============================================================================*/
@@ -90,7 +94,7 @@ void sigint_handler(int sig) {
        sig == SIGTERM)
     {
         app_trace(TRACE_INFO, "App. Signal %d received", sig);
-        app_destroy();
+        app_run = 0;
     }
 }
 
@@ -198,11 +202,73 @@ _exit:
 
 /*============================================================================*/
 
+static int app_procSessions()
+{
+	cfg_t *cfg = app_getCfg();
+	int i, skip_sessions;
+	struct pollfd *pfds = cfg->pfds;
+	int session_cnt = cfg->session_cnt;
+	session_t **session = cfg->session;
+
+	for(i = CTRL_FD_IDX + 1, skip_sessions = 0; i < session_cnt; i++)
+	{
+		if(pfds[i].fd == -1)
+		{
+			skip_sessions++;
+			continue;
+		}
+
+		/* remove destroyed sessions */
+		if(skip_sessions > 0)
+		{
+			session[i - skip_sessions] = session[i];
+			pfds[i - skip_sessions] = pfds[i];
+			session[i]->sidx = i - skip_sessions;
+		}
+
+		if(pfds[i].revents & POLLIN)
+		{
+			session_proc(session[i]);
+		}
+	}
+
+	cfg->session_cnt -= skip_sessions;
+
+	return 0;
+}
+
+
+static int app_procCMD()
+{
+	cfg_t *cfg = app_getCfg();
+
+	return (cfg->pfds[CTRL_FD_IDX].revents & POLLIN) ?
+				session_procCMD(cfg->session[CTRL_FD_IDX]) : -1;
+}
+
 
 int app_start()
 {
+	cfg_t *cfg = app_getCfg();
+	int poll_res;
+	int i = 0;
 
 	app_trace(TRACE_INFO, "App. Starting application");
+
+	while(app_run)
+	{
+		poll_res = poll(cfg->pfds, cfg->session_cnt, POLL_TIMEOUT);
+
+		app_procSessions();
+
+		if(poll_res > 0)
+		{
+			app_procCMD();
+		}
+
+		app_trace(TRACE_INFO, "%d", i++);
+		if(i > 1000000) i = 0;
+	}
 
 	return 0;
 }
