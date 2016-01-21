@@ -89,7 +89,7 @@ void sigint_handler(int sig) {
        sig == SIGHUP ||
        sig == SIGTERM)
     {
-        app_trace(TRACE_INFO, "Signal %d received", sig);
+        app_trace(TRACE_INFO, "App. Signal %d received", sig);
         app_destroy();
     }
 }
@@ -101,22 +101,22 @@ static int app_InitControlFD()
     session_t *session = NULL;
     cfg_t *cfg = app_getCfg();
 
-    app_trace(TRACE_INFO, "%s: Create control session: %s:%u", __func__,
+    app_trace(TRACE_INFO, "App. Create control session: %s:%u",
               ip2str(cfg->local_ip, 0), cfg->local_port);
 
     session = session_create(FAX_SESSION_MODE_CTRL, CTRL_FD_IDX,
                              FAX_SESSION_DIR_IN);
     if(!session)
     {
-        app_trace(TRACE_ERR, "%s: control session creating failed", __func__);
+        app_trace(TRACE_ERR, "App. Control session creating failed");
         ret_val = -1; goto _exit;
     }
 
     res = session_initCtrl(session);
     if(res)
     {
-        app_trace(TRACE_ERR, "%s: control session init failed (%d)",
-                  __func__, res);
+        app_trace(TRACE_ERR, "App. Control session init failed (%d)",
+                  res);
         session_destroy(session);
         ret_val = -2; goto _exit;
     }
@@ -126,8 +126,8 @@ static int app_InitControlFD()
 
     cfg->session_cnt = 1;
 
-    app_trace(TRACE_INFO, "%s: control session created: id:%04x fd = %d",
-              __func__, session->ses_id, session->fds);
+    app_trace(TRACE_INFO, "App. Control session created: Session %04x fd = %d",
+              session->ses_id, session->fds);
 
 _exit:
     return ret_val;
@@ -139,7 +139,7 @@ static int app_cfgInit()
 	int ret_val = 0, res;
 	cfg_t *cfg = app_getCfg();
 
-	app_trace(TRACE_INFO, "%s: init cfg", __func__);
+	app_trace(TRACE_INFO, "App. Init cfg");
 
 	cfg->local_ip = app_getLocalIP(NET_IFACE);
 	cfg->local_port = FAX_CONTROL_PORT;
@@ -147,16 +147,15 @@ static int app_cfgInit()
 	cfg->pfds = calloc(FAX_MAX_SESSIONS, sizeof(*(cfg->pfds)));
 	if(!cfg->pfds)
 	{
-		app_trace(TRACE_ERR, "%s: memory allocation for file"
-				  " descriptors failed", __func__);
+		app_trace(TRACE_ERR, "App. Memory allocation for file"
+				  " descriptors failed");
 		ret_val = -1; goto _exit;
 	}
 
 	cfg->session = calloc(FAX_MAX_SESSIONS, sizeof(*(cfg->session)));
 	if(!cfg->session)
 	{
-		app_trace(TRACE_ERR, "%s: memory allocation for sessions failed",
-				  __func__);
+		app_trace(TRACE_ERR, "App. Memory allocation for sessions failed");
 		free(cfg->pfds);
 		ret_val = -2; goto _exit;
 	}
@@ -164,8 +163,8 @@ static int app_cfgInit()
 	res = app_InitControlFD();
 	if(res)
 	{
-		app_trace(TRACE_ERR, "%s: creating of control fd failed (%d)",
-				  __func__, res);
+		app_trace(TRACE_ERR, "App. Creating of control fd failed (%d)",
+				  res);
 		free(cfg->pfds);
 		free(cfg->session);
 		ret_val = -3; goto _exit;
@@ -181,14 +180,14 @@ int app_init()
 	int res = 0;
 	int ret_val = 0;
 
-	app_trace(TRACE_INFO, "%s: initializing application", __func__);
+	app_trace(TRACE_INFO, "App. Initializing application");
 
 	signal(SIGINT, &sigint_handler);
 
 	res = app_cfgInit();
 	if(res)
 	{
-		app_trace(TRACE_INFO, "%s: failed to init config (%d)", __func__, res);
+		app_trace(TRACE_INFO, "App. Failed to init config (%d)", res);
 		ret_val = -1; goto _exit;
 	}
 
@@ -203,9 +202,7 @@ _exit:
 int app_start()
 {
 
-	app_trace(TRACE_INFO, "%s: starting application", __func__);
-
-
+	app_trace(TRACE_INFO, "App. Starting application");
 
 	return 0;
 }
@@ -218,7 +215,7 @@ void app_cfgDestroy()
 	cfg_t *cfg = app_getCfg();
 	int i;
 
-	app_trace(TRACE_INFO, "%s: destroy cfg", __func__);
+	app_trace(TRACE_INFO, "App. Destroy cfg");
 
 	for(i = 0; i < cfg->session_cnt; i++)
 	{
@@ -234,7 +231,7 @@ void app_cfgDestroy()
 
 int app_destroy()
 {
-	app_trace(TRACE_INFO, "%s: destroing application", __func__);
+	app_trace(TRACE_INFO, "App. Destroing application");
 
 	app_cfgDestroy();
 

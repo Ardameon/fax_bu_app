@@ -93,8 +93,7 @@ session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
     new_session = calloc(1, sizeof(*new_session));
     if(!new_session)
     {
-        app_trace(TRACE_ERR, "%s: memory allocation for new session failed",
-                  __func__);
+        app_trace(TRACE_ERR, "Session. Memory allocation for new session failed");
         goto _exit;
     }
 
@@ -105,9 +104,9 @@ session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
     new_session->FLAG_IN = dir;
     new_session->fds = -1;
 
-    app_trace(TRACE_INFO, "%s: Session %04x. Created:\n"
+    app_trace(TRACE_INFO, "Session %04x. Created:\n"
               "\tIdx:%02d Mode:'%s' Dir:'%s'",
-              __func__, new_session->ses_id,
+              new_session->ses_id,
               new_session->sidx,
               session_modeStr(new_session->mode),
               new_session->FLAG_IN ? "IN" : "OUT");
@@ -132,7 +131,7 @@ static int session_createListener(uint32_t ip, uint16_t port)
     struct sockaddr_in local_addr;
     int reuse = 1;
 
-    app_trace(TRACE_INFO, "%s: Create listener: %s:%u", __func__,
+    app_trace(TRACE_INFO, "Session. Create listener: %s:%u",
               ip2str(ip, 0), port);
 
     local_addr.sin_family = AF_INET;
@@ -141,8 +140,8 @@ static int session_createListener(uint32_t ip, uint16_t port)
 
     if((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
-        app_trace(TRACE_ERR, "%s: socket() failed: %s",
-                  __func__, strerror(errno));
+        app_trace(TRACE_ERR, "Session. socket() failed: %s",
+                  strerror(errno));
         ret_val = -2; goto _exit;
     }
 
@@ -150,15 +149,15 @@ static int session_createListener(uint32_t ip, uint16_t port)
 
     if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {
-        app_trace(TRACE_ERR, "%s: setsockopt() failed: %s",
-                  __func__, strerror(errno));
+        app_trace(TRACE_ERR, "Session. setsockopt() failed: %s",
+                  strerror(errno));
         ret_val = -3; goto _exit;
     }
 
     if(bind(sock, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0)
     {
-        app_trace(TRACE_ERR, "%s: bind() failed: %s",
-                  __func__, strerror(errno));
+        app_trace(TRACE_ERR, "Session. bind() failed: %s",
+                  strerror(errno));
         ret_val = -4; goto _exit;
     }
 
@@ -183,8 +182,8 @@ int session_initCtrl(session_t *session)
     fd = session_createListener(cfg->local_ip, cfg->local_port);
     if(fd <= 0)
     {
-        app_trace(TRACE_INFO, "%s: S %04x. Listener creation failed (%d)",
-                  __func__, session->ses_id, fd);
+        app_trace(TRACE_INFO, "Session %04x. Listener creation failed (%d)",
+                  session->ses_id, fd);
         ret_val = -2; goto _exit;
     }
 

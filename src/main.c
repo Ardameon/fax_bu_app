@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     res = app_init();
     if(res)
     {
-        app_trace(TRACE_ERR, "app init failed (%d)", res);
+        app_trace(TRACE_ERR, "App init failed (%d)", res);
         ret_val = -1; goto _exit;
     }
 
