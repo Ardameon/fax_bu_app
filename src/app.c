@@ -84,6 +84,15 @@ static uint32_t app_getLocalIP(const char *iface)
     return ntohl(sa->sin_addr.s_addr);
 }
 
+void sigint_handler(int sig) {
+    if(sig == SIGINT ||
+       sig == SIGHUP ||
+       sig == SIGTERM)
+    {
+        app_trace(TRACE_INFO, "Signal %d received", sig);
+        app_destroy();
+    }
+}
 
 static int app_InitControlFD()
 {
@@ -174,6 +183,8 @@ int app_init()
 
 	app_trace(TRACE_INFO, "%s: initializing application", __func__);
 
+	signal(SIGINT, &sigint_handler);
+
 	res = app_cfgInit();
 	if(res)
 	{
@@ -193,6 +204,8 @@ int app_start()
 {
 
 	app_trace(TRACE_INFO, "%s: starting application", __func__);
+
+
 
 	return 0;
 }

@@ -10,6 +10,7 @@
 
 #define MAX_SESSION
 
+
 typedef enum {
     FAX_SESSION_STATE_NULL,
     FAX_SESSION_STATE_SETUP,
@@ -29,21 +30,28 @@ typedef enum {
     FAX_SESSION_DIR_IN,
 } session_dir_e;
 
-typedef struct session_t {
+typedef struct session_t session_t;
+
+struct session_t {
     int  ses_id;
     int  peer_ses_id;
     char call_id[32];
     int  sidx;
 
     int  fds;
+    session_t *peer_ses;
+
+    uint32_t    rem_ip;
+    uint16_t    rem_port;
+
+    struct sockaddr_in remaddr;
 
     session_state_e state;
-
     session_mode_e  mode;
 
     uint16_t     FLAG_IN:1,
                  FLAG_RESERV:15;
-} session_t;
+};
 
 
 session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir);
