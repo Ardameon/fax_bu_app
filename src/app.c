@@ -37,10 +37,10 @@ void app_trace(int level, char *format, ...)
 		default:	 p="[????]";  break;
 	}
 
+	sprintf(str, " %s  %s  ", timestamp, p);
+
 	length = strlen(str);
 	size = sizeof(str) - length - 10;
-
-	sprintf(str, " %s  %s  ", timestamp, p);
 
 	va_start(ap, format);
 	length = vsnprintf(&str[length], size, format, ap);
@@ -211,7 +211,7 @@ void app_cfgDestroy()
 	{
 		session_destroy(cfg->session[i]);
 		cfg->session[i] = NULL;
-		cfg->pfds->fd = -1;
+		cfg->pfds[i].fd = -1;
 	}
 
 	free(cfg->pfds);

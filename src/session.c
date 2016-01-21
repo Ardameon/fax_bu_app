@@ -84,8 +84,8 @@ session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
     if(sidx < 0 ||
        mode == FAX_SESSION_MODE_UNKNOWN ||
        mode > FAX_SESSION_MODE_TERMINAL ||
-       dir != FAX_SESSION_DIR_IN ||
-       dir != FAX_SESSION_DIR_OUT)
+       dir > FAX_SESSION_DIR_IN ||
+       dir < FAX_SESSION_DIR_OUT)
     {
         goto _exit;
     }
@@ -105,7 +105,8 @@ session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
     new_session->FLAG_IN = dir;
     new_session->fds = -1;
 
-    app_trace(TRACE_INFO, "%s: S %04x. Created. Idx:%02d Mode:'%s' Dir:'%s' ",
+    app_trace(TRACE_INFO, "%s: Session %04x. Created:\n"
+              "\tIdx:%02d Mode:'%s' Dir:'%s'",
               __func__, new_session->ses_id,
               new_session->sidx,
               session_modeStr(new_session->mode),
@@ -130,14 +131,13 @@ static int session_createListener(uint32_t ip, uint16_t port)
     int sock = -1;
     struct sockaddr_in local_addr;
     int reuse = 1;
-    cfg_t *cfg = app_getCfg();
 
     app_trace(TRACE_INFO, "%s: Create listener: %s:%u", __func__,
               ip2str(ip, 0), port);
 
     local_addr.sin_family = AF_INET;
-    local_addr.sin_addr.s_addr = htonl(cfg->local_ip);
-    local_addr.sin_port = htons(cfg->local_port);
+    local_addr.sin_addr.s_addr = htonl(ip);
+    local_addr.sin_port = htons(port);
 
     if((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
