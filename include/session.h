@@ -60,6 +60,6 @@ void session_destroy(session_t *session);
 int session_initCtrl(session_t *session);
 
 int session_proc(const session_t *session);
-int session_procCMD(const session_t *session);
+int session_procCMD(session_t *session);
 
 #endif // SESSION_H

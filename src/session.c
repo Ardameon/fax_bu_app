@@ -1,14 +1,15 @@
 #include "session.h"
 #include "msg_proc.h"
 
+#define ERROR_CALL_ID "FAIL"
 
 static int session_id_array[SESSION_ID_CNT];
 
 static int ses_id_static_in = 0;
 static int ses_id_static_out = SESSION_ID_OUT;
 
-
 /*============================================================================*/
+
 static const char *session_modeStr(session_mode_e mode)
 {
     switch(mode)
@@ -19,6 +20,32 @@ static const char *session_modeStr(session_mode_e mode)
         default:                        return "MODE_UNKNOWN";
     }
 }
+
+/*============================================================================*/
+
+static const char *msg2str(const uint8_t *buf)
+{
+    static char str[2][MSG_BUF_LEN];
+    static int i = 0;
+    int j;
+    char *c = (char *)buf;
+
+    i %= 2;
+
+    for(j = 0; *c != '\r' && *c != '\n' && *c != '\0'; j++, c++)
+    {
+        if(*c >= ' ' && *c < '~')
+            str[i][j] = *c;
+        else
+            str[i][j] = '.';
+    }
+
+    str[i][j] = '\0';
+
+    return str[i++];
+}
+
+/*============================================================================*/
 
 static int session_NextID(int in)
 {
@@ -76,6 +103,7 @@ _exit:
     return ret_val;
 }
 
+/*============================================================================*/
 
 session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
 {
@@ -115,6 +143,8 @@ _exit:
     return new_session;
 }
 
+/*============================================================================*/
+
 void session_destroy(session_t *session)
 {
     if(!session) return;
@@ -123,6 +153,7 @@ void session_destroy(session_t *session)
     free(session);
 }
 
+/*============================================================================*/
 
 static int session_createListener(uint32_t ip, uint16_t port)
 {
@@ -167,6 +198,7 @@ _exit:
     return ret_val;
 }
 
+/*============================================================================*/
 
 int session_initCtrl(session_t *session)
 {
@@ -193,14 +225,16 @@ _exit:
     return ret_val;
 }
 
-static int session_recvMsg(const session_t *session, uint8_t *msgbuf,
+/*============================================================================*/
+
+static int session_recvMsg(session_t *session, uint8_t *msgbuf,
                            int msglen)
 {
     int ret_val = 0;
-    struct sockaddr_storage sa;
-    socklen_t sa_len;
+    struct sockaddr_in sa;
+    socklen_t sa_len = sizeof(sa);
 
-    if(!session)
+    if(!session || !msgbuf)
     {
         ret_val = -2; goto _exit;
     }
@@ -208,24 +242,28 @@ static int session_recvMsg(const session_t *session, uint8_t *msgbuf,
     ret_val = recvfrom(session->fds, msgbuf, msglen, 0,
                        (struct sockaddr *)(&sa), &sa_len);
 
+
     if(session->mode == FAX_SESSION_MODE_CTRL)
     {
-        memcpy((void *)(&session->remaddr), &sa, sa_len);
+        memcpy((void *)(&session->remaddr), &sa, sizeof(session->remaddr));
+        session->rem_ip = ntohl(sa.sin_addr.s_addr);
+        session->rem_port = ntohs(sa.sin_port);
     }
 
 _exit:
     return ret_val;
 }
 
+/*============================================================================*/
 
 static int session_sendMsg(const session_t *session, uint8_t *msgbuf,
                            int msglen)
 {
     int ret_val = 0;
 
-    if(!session)
+    if(!session || !msgbuf)
     {
-        ret_val = -1; goto _exit;
+        ret_val = -2; goto _exit;
     }
 
     ret_val = sendto(session->fds, msgbuf, msglen, 0,
@@ -236,6 +274,7 @@ _exit:
     return ret_val;
 }
 
+/*============================================================================*/
 
 int session_proc(const session_t *session)
 {
@@ -243,6 +282,7 @@ int session_proc(const session_t *session)
     return 0;
 }
 
+/*============================================================================*/
 
 static int session_procMsg(sig_message_t *message)
 {
@@ -250,18 +290,21 @@ static int session_procMsg(sig_message_t *message)
     return 0;
 }
 
+/*============================================================================*/
 
-int session_procCMD(const session_t *ctrl_session)
+int session_procCMD(session_t *ctrl_session)
 {
-    uint8_t buf_recv[MSG_BUF_LEN_MAX];
-    uint8_t *buf_send = NULL;
+    uint8_t buf_recv[MSG_BUF_LEN];
+    uint8_t buf_send[MSG_BUF_LEN];
+    int buf_len;
     char msg_str[512];
     int res, ress, ret_val = 0;
     sig_message_t *message_recv = NULL;
     sig_message_t *message_send = NULL;
     cfg_t *cfg = app_getCfg();
 
-    res = session_recvMsg(ctrl_session, buf_recv, MSG_BUF_LEN_MAX);
+    /* Receive signaling message */
+    res = session_recvMsg(ctrl_session, buf_recv, MSG_BUF_LEN);
     if(res < 0)
     {
         app_trace(TRACE_ERR, "Session %04x. Message receiving error (%d) %s",
@@ -270,28 +313,38 @@ int session_procCMD(const session_t *ctrl_session)
         ret_val = -1; goto _exit;
     }
 
-    res = msg_parse(buf_recv, &message_recv);
+    app_trace(TRACE_INFO, "SIG MSG RX .......... FROM %s:%u '%s' (%d)",
+              ip2str(ctrl_session->rem_ip, 0), ctrl_session->rem_port, msg2str(buf_recv), res);
+
+    /* Parse it */
+    res = sig_msgParse((char *)buf_recv, &message_recv);
     if(res < 0)
     {
         app_trace(TRACE_ERR, "Session %04x. Message parsing error (%d)",
                   ctrl_session->ses_id, res);
-        ret_val = -2; goto _exit;
+        ret_val = -2;
+
+        ress = sig_msgCreateError(ERROR_CALL_ID, FAX_ERROR_INVALID_MESSAGE,
+                                  (sig_message_error_t **)(&message_send));
+        goto _compose_msg;
     }
 
-    msg_print(message_recv, msg_str, sizeof(msg_str));
+    sig_msgPrint(message_recv, msg_str, sizeof(msg_str));
     app_trace(TRACE_INFO, "Session %04x. Message received: %s",
               ctrl_session->ses_id, msg_str);
 
+    /* Process received message */
     res = session_procMsg(message_recv);
 
     if(res < 0)
     {
+        /* Processing failed */
         app_trace(TRACE_ERR, "Session %04x. Processing CMD %s "
                   "(call_id: '%s') failed(%d)",
-                  ctrl_session->ses_id, msg_msgTypeStr(message_recv->type),
+                  ctrl_session->ses_id, sig_msgTypeStr(message_recv->type),
                   message_recv->call_id, res);
 
-        ress = msg_createError(message_recv->call_id, FAX_ERROR_INTERNAL,
+        ress = sig_msgCreateError(message_recv->call_id, FAX_ERROR_INTERNAL,
                                (sig_message_error_t **)(&message_send));
         if(ress < 0)
         {
@@ -299,60 +352,50 @@ int session_procCMD(const session_t *ctrl_session)
                       ctrl_session->ses_id, ress);
             ret_val = -3; goto _exit_1;
         }
-
-
-        ress = msg_bufCreate(message_send, &buf_send);
-        if(ress < 0)
-        {
-            app_trace(TRACE_ERR, "Session %04x. ERROR msg buffer "
-                      "creating failed (%d)",
-                      ctrl_session->ses_id, ress);
-            ret_val = -4; goto _exit_2;
-        }
     } else {
-        ress = msg_createOk(message_recv->call_id, cfg->local_ip, 33333,
+        /* Processed successfully */
+        /* FAX_TODO: Here we need to chose the port for fax exchange */
+        ress = sig_msgCreateOk(message_recv->call_id, cfg->local_ip, 33333,
                                (sig_message_ok_t **)(&message_send));
         if(ress < 0)
         {
             app_trace(TRACE_ERR, "Session %04x. OK msg creating failed (%d)",
                       ctrl_session->ses_id, ress);
-            ret_val = -5; goto _exit_1;
-        }
-
-        ress = msg_bufCreate(message_send, &buf_send);
-        if(ress < 0)
-        {
-            app_trace(TRACE_ERR, "Session %04x. OK msg buffer "
-                      "creating failed (%d)",
-                      ctrl_session->ses_id, ress);
-            ret_val = -6; goto _exit_2;
+            ret_val = -4; goto _exit_1;
         }
     }
 
-    msg_print(message_send, msg_str, sizeof(msg_str));
+    sig_msgPrint(message_send, msg_str, sizeof(msg_str));
     app_trace(TRACE_INFO, "Session %04x. Message to send: %s",
               ctrl_session->ses_id, msg_str);
 
-    res = session_sendMsg(ctrl_session, buf_send, res);
+_compose_msg:
+    buf_len = sig_msgCompose(message_send, (char *)buf_send, sizeof(buf_send));
+
+    /* Send answer */
+    res = session_sendMsg(ctrl_session, buf_send, buf_len);
     if(ress < 0)
     {
         app_trace(TRACE_ERR, "Session %04x. Message sending error (%d) %s",
                   ctrl_session->ses_id, res,
                   (res == -1) ? strerror(errno) : "");
-        ret_val = -7;
+        ret_val = -6;
     }
 
-    msg_bufDestroy(buf_send);
+    app_trace(TRACE_INFO, "SIG MSG TX .......... TO %s:%u '%s' (%d)",
+              ip2str(ctrl_session->rem_ip, 0), ctrl_session->rem_port,
+              msg2str(buf_send), res);
 
-_exit_2:
-    msg_destroy(message_send);
+    if(message_send) sig_msgDestroy(message_send);
 
 _exit_1:
-    msg_destroy(message_recv);
+    if(message_recv) sig_msgDestroy(message_recv);
 
 _exit:
     return ret_val;
 }
+
+/*============================================================================*/
 
 
 

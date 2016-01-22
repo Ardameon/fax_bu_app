@@ -11,10 +11,7 @@ static cfg_t app_config;
 
 uint8_t app_run = 1;
 
-
-
 /*============================================================================*/
-
 
 void app_trace(int level, char *format, ...)
 {
@@ -60,18 +57,14 @@ void app_trace(int level, char *format, ...)
 	printf("%s", str);
 }
 
-
 /*============================================================================*/
-
 
 cfg_t *app_getCfg()
 {
 	return &app_config;
 }
 
-
 /*============================================================================*/
-
 
 static uint32_t app_getLocalIP(const char *iface)
 {
@@ -88,6 +81,8 @@ static uint32_t app_getLocalIP(const char *iface)
     return ntohl(sa->sin_addr.s_addr);
 }
 
+/*============================================================================*/
+
 void sigint_handler(int sig) {
     if(sig == SIGINT ||
        sig == SIGHUP ||
@@ -97,6 +92,8 @@ void sigint_handler(int sig) {
         app_run = 0;
     }
 }
+
+/*============================================================================*/
 
 static int app_InitControlFD()
 {
@@ -127,6 +124,7 @@ static int app_InitControlFD()
 
     cfg->pfds[CTRL_FD_IDX].fd = session->fds;
     cfg->pfds[CTRL_FD_IDX].events = POLLIN;
+    cfg->session[CTRL_FD_IDX] = session;
 
     cfg->session_cnt = 1;
 
@@ -137,6 +135,7 @@ _exit:
     return ret_val;
 }
 
+/*============================================================================*/
 
 static int app_cfgInit()
 {
@@ -178,6 +177,7 @@ _exit:
 	return ret_val;
 }
 
+/*============================================================================*/
 
 int app_init()
 {
@@ -198,7 +198,6 @@ int app_init()
 _exit:
 	return ret_val;
 }
-
 
 /*============================================================================*/
 
@@ -237,6 +236,7 @@ static int app_procSessions()
 	return 0;
 }
 
+/*============================================================================*/
 
 static int app_procCMD()
 {
@@ -246,12 +246,13 @@ static int app_procCMD()
 				session_procCMD(cfg->session[CTRL_FD_IDX]) : -1;
 }
 
+/*============================================================================*/
 
 int app_start()
 {
 	cfg_t *cfg = app_getCfg();
 	int poll_res;
-	int i = 0;
+//	int i = 0;
 
 	app_trace(TRACE_INFO, "App. Starting application");
 
@@ -266,13 +267,12 @@ int app_start()
 			app_procCMD();
 		}
 
-		app_trace(TRACE_INFO, "%d", i++);
-		if(i > 1000000) i = 0;
+//		app_trace(TRACE_INFO, "%d", i++);
+//		if(i > 1000000) i = 0;
 	}
 
 	return 0;
 }
-
 
 /*============================================================================*/
 
@@ -294,6 +294,7 @@ void app_cfgDestroy()
 	free(cfg->session);
 }
 
+/*============================================================================*/
 
 int app_destroy()
 {
@@ -303,7 +304,6 @@ int app_destroy()
 
 	return 0;
 }
-
 
 /*============================================================================*/
 
