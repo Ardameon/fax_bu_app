@@ -6,8 +6,13 @@
 #define NET_IFACE "eth0"
 #define CTRL_FD_IDX 0
 #define POLL_TIMEOUT 20 /* msec */
+#define PORT_START 37000
+#define PORT_COUNT 200
 
 static cfg_t app_config;
+
+static uint16_t port_table[PORT_COUNT];
+static uint16_t port_idx_static = 0;
 
 uint8_t app_run = 1;
 
@@ -307,7 +312,63 @@ int app_destroy()
 
 /*============================================================================*/
 
+int app_portGetFree()
+{
+	int i, ret_val = -1;
 
+	for(i = port_idx_static; i < PORT_COUNT; i++)
+	{
+		if(!port_table[i])
+		{
+			port_idx_static = i + 1;
+			port_table[i] = 1;
+			ret_val = i + PORT_START;
+			goto _exit;
+		}
+	}
+
+	for(i = 0; i < port_idx_static; i++)
+	{
+		if(!port_table[i])
+		{
+			port_idx_static = i + 1;
+			port_table[i] = 1;
+			ret_val = i + PORT_START;
+			goto _exit;
+		}
+	}
+
+_exit:
+
+	return ret_val;
+}
+
+/*============================================================================*/
+
+int app_portRelease(uint16_t port)
+{
+	int ret_val = 0;
+
+	if(port < PORT_START || port >= PORT_START + PORT_COUNT)
+	{
+		ret_val = -1;
+		goto _exit;
+	}
+
+	if(!port_table[port - PORT_START])
+	{
+		ret_val = -2;
+		goto _exit;
+	}
+
+	port_table[port - PORT_START] = 0;
+
+
+_exit:
+	return ret_val;
+}
+
+/*============================================================================*/
 
 
 

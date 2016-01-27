@@ -44,6 +44,9 @@ struct session_t {
     uint32_t    rem_ip;
     uint16_t    rem_port;
 
+    uint32_t    loc_ip;
+    uint16_t    loc_port;
+
     struct sockaddr_in remaddr;
 
     session_state_e state;

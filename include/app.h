@@ -51,6 +51,9 @@ int app_init();
 int app_start();
 int app_destroy();
 
+int app_portGetFree();
+int app_portRelease(uint16_t port);
+
 cfg_t *app_getCfg();
 
 #endif

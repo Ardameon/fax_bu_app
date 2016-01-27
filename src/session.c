@@ -47,7 +47,7 @@ static const char *msg2str(const uint8_t *buf)
 
 /*============================================================================*/
 
-static int session_NextID(int in)
+static int session_idGetNext(int in)
 {
     int i = 0;
     int ret_val = -1;
@@ -105,6 +105,28 @@ _exit:
 
 /*============================================================================*/
 
+static int session_idRelease(int id)
+{
+    int ret_val = 0;
+
+    if(id < SESSION_ID_IN || id >= SESSION_ID_IN + SESSION_ID_CNT)
+    {
+        ret_val = -1; goto _exit;
+    }
+
+    if(!session_id_array[id])
+    {
+        ret_val = -2; goto _exit;
+    }
+
+    session_id_array[id] = 0;
+
+_exit:
+    return ret_val;
+}
+
+/*============================================================================*/
+
 session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
 {
     session_t *new_session = NULL;
@@ -125,7 +147,7 @@ session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
         goto _exit;
     }
 
-    new_session->ses_id = session_NextID(dir);
+    new_session->ses_id = session_idGetNext(dir);
     new_session->sidx = sidx;
     new_session->mode = mode;
     new_session->state = FAX_SESSION_STATE_NULL;
@@ -148,6 +170,10 @@ _exit:
 void session_destroy(session_t *session)
 {
     if(!session) return;
+
+    session_idRelease(session->ses_id);
+
+    app_portRelease(session->loc_port);
 
     if(session->fds > 0) close(session->fds);
     free(session);
@@ -211,7 +237,10 @@ int session_initCtrl(session_t *session)
         ret_val = -1; goto _exit;
     }
 
-    fd = session_createListener(cfg->local_ip, cfg->local_port);
+    session->loc_ip = cfg->local_ip;
+    session->loc_port = cfg->local_port;
+
+    fd = session_createListener(session->loc_ip, session->loc_port);
     if(fd <= 0)
     {
         app_trace(TRACE_INFO, "Session %04x. Listener creation failed (%d)",
@@ -302,6 +331,7 @@ int session_procCMD(session_t *ctrl_session)
     sig_message_t *message_recv = NULL;
     sig_message_t *message_send = NULL;
     cfg_t *cfg = app_getCfg();
+    uint16_t ses_port;
 
     /* Receive signaling message */
     res = session_recvMsg(ctrl_session, buf_recv, MSG_BUF_LEN);
@@ -355,7 +385,9 @@ int session_procCMD(session_t *ctrl_session)
     } else {
         /* Processed successfully */
         /* FAX_TODO: Here we need to chose the port for fax exchange */
-        ress = sig_msgCreateOk(message_recv->call_id, cfg->local_ip, 33333,
+        ses_port = app_portGetFree();
+
+        ress = sig_msgCreateOk(message_recv->call_id, cfg->local_ip, ses_port,
                                (sig_message_ok_t **)(&message_send));
         if(ress < 0)
         {
@@ -363,6 +395,8 @@ int session_procCMD(session_t *ctrl_session)
                       ctrl_session->ses_id, ress);
             ret_val = -4; goto _exit_1;
         }
+
+        app_portRelease(ses_port);
     }
 
     sig_msgPrint(message_send, msg_str, sizeof(msg_str));
