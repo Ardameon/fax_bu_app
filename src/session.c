@@ -81,7 +81,7 @@ static int session_NextID(int in)
             if(session_id_array[i] == 0)
             {
                 session_id_array[i] = 1;
-                ses_id_static_in = i + 1;
+                ses_id_static_out = i + 1;
                 ret_val = i;
                 goto _exit;
             }
@@ -92,7 +92,7 @@ static int session_NextID(int in)
             if(session_id_array[i] == 0)
             {
                 session_id_array[i] = 1;
-                ses_id_static_in = i + 1;
+                ses_id_static_out = i + 1;
                 ret_val = i;
                 goto _exit;
             }
