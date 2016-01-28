@@ -34,7 +34,6 @@ typedef struct session_t session_t;
 
 struct session_t {
     int  ses_id;
-    int  peer_ses_id;
     char call_id[32];
     int  sidx;
 
@@ -61,8 +60,10 @@ session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir);
 void session_destroy(session_t *session);
 
 int session_initCtrl(session_t *session);
+int session_init(session_t *session, const char *call_id, uint32_t remote_ip,
+                 uint16_t remote_port);
 
-int session_proc(const session_t *session);
+int session_proc(session_t *session);
 int session_procCMD(session_t *session);
 
 #endif // SESSION_H
