@@ -1,6 +1,8 @@
 .PHONY: all clean
 
 CC = gcc
+STRIP = strip
+
 INCLUDE_PATH = ../include
 
 WARNING_FLAGS_MAXIMUM_PARANOIA = -Wall -Werror -Wextra -Wconversion -Wsign-conversion \
@@ -13,33 +15,46 @@ WARNING_FLAGS = -Wall -Werror -Wextra\
 				-Wmissing-include-dirs -Wswitch-default -Wstrict-overflow=4 -Wfloat-equal \
 				-Wundef -Wshadow
 
-DEBUG = -g -O0
+DEBUG = -g
+OPTIMISATION = -O0
 
-CFLAGS += $(WARNING_FLAGS) -I$(INCLUDE_PATH) $(DEBUG)
+SPANDSP_DIR = ../spandsp/x86_64/deploy/usr/local
+SPANDSP_INCLUDE = -I$(SPANDSP_DIR)/include
+SPANDSP_LIB = -L$(SPANDSP_DIR)/lib
 
+LIBS += $(shell pkg-config --libs-only-l $(SPANDSP_DIR)/lib/pkgconfig/spandsp.pc)
+LDFLAGS = $(SPANDSP_LIB)
 
-SRC_FILES = main.c app.c msg_proc.c session.c
-OBJ_FILES = main.o app.o msg_proc.o session.o
-OUTPUT_FILE = fax_bu_app
+CFLAGS += $(WARNING_FLAGS) -I$(INCLUDE_PATH) $(SPANDSP_INCLUDE) $(DEBUG) $(OPTIMISATION)
 
-all: fax_bu_app
+OBJ_DIR = ../obj
+BIN_DIR = ../bin
+SRC_DIR = ./
 
-main.o: main.c 
+SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/app.c $(SRC_DIR)/msg_proc.c $(SRC_DIR)/session.c
+OBJ_FILES = $(OBJ_DIR)/main.o $(OBJ_DIR)/app.o $(OBJ_DIR)/msg_proc.o $(OBJ_DIR)/session.o
+BIN = $(BIN_DIR)/fax_bu_app
+
+all: striped
+
+striped: $(BIN)
+	cp $(BIN) $(BIN)_uns
+	$(STRIP) $(BIN)
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-app.o: app.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+$(BIN): $(OBJ_FILES) $(BIN_DIR)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJ_FILES) $(LIBS)
 
-msg_proc.o: msg_proc.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
 
-session.o: session.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
-fax_bu_app: $(OBJ_FILES)
-	$(CC) $(CFLAGS) -o $@ $(OBJ_FILES)
 
 clean: 
-	rm -f *.o
-	rm -f fax_bu_app
+	rm -rf $(OBJ_DIR)
+	rm -rf $(BIN_DIR)
 
