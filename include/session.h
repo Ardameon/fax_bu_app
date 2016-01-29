@@ -113,6 +113,7 @@ int session_init(session_t *session, const char *call_id, uint32_t remote_ip,
                  uint16_t remote_port);
 
 int session_proc(session_t *session);
+int session_procFax(session_t *session);
 int session_procCMD(session_t *session);
 
 #endif // SESSION_H

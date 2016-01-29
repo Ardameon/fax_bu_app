@@ -230,6 +230,11 @@ static int app_procSessions()
 			session[i]->sidx = i - skip_sessions;
 		}
 
+//		if(session[i]->FLAG_IN)
+//		{
+			session_procFax(session[i]);
+//		}
+
 		if(pfds[i].revents & POLLIN)
 		{
 			session_proc(session[i]);
@@ -257,7 +262,6 @@ int app_start()
 {
 	cfg_t *cfg = app_getCfg();
 	int poll_res;
-//	int i = 0;
 
 	app_trace(TRACE_INFO, "App. Starting application");
 
@@ -271,9 +275,6 @@ int app_start()
 		{
 			app_procCMD();
 		}
-
-//		app_trace(TRACE_INFO, "%d", i++);
-//		if(i > 1000000) i = 0;
 	}
 
 	return 0;

@@ -9,6 +9,25 @@ static int session_id_array[SESSION_ID_CNT];
 static int ses_id_static_in = 0;
 static int ses_id_static_out = SESSION_ID_OUT;
 
+void show_data(uint8_t *data, int len)
+{
+	char str[2048];
+	int i, size;
+
+	sprintf(str, "buffer(%d): ", len);
+	size = strlen(str);
+
+	size += strlen(&str[size]);
+
+	for(i = 0; i<len; i++)
+	{
+		sprintf(&str[size], "%02X.", (uint8_t)data[i]);
+		size += strlen(&str[size]);
+	}
+
+	app_trace(TRACE_INFO, "%s", str);
+}
+
 /*============================================================================*/
 
 static int session_sendMsg(const session_t *session, uint8_t *msgbuf,
@@ -373,7 +392,6 @@ static int session_recvMsg(session_t *session, uint8_t *msgbuf,
     app_trace(TRACE_INFO, "Session %04x. RX buffer len: %d",
               session->ses_id, ret_val);
 
-
     if(session->mode == FAX_SESSION_MODE_CTRL)
     {
         memcpy((void *)(&session->remaddr), &sa, sizeof(session->remaddr));
@@ -410,13 +428,15 @@ _exit:
 
 /*============================================================================*/
 
+
+
 int session_proc(session_t *session)
 {
-    uint8_t buf[MSG_BUF_LEN];
-    int res;
+    uint8_t udptl_buf[MSG_BUF_LEN];
+    int res, len;
     int ret_val = 0;
 
-    res = session_recvMsg(session, buf, MSG_BUF_LEN);
+    res = session_recvMsg(session, udptl_buf, MSG_BUF_LEN);
     if(res < 0)
     {
         app_trace(TRACE_ERR, "Session %04x. recvMsg() error (%d) %s",
@@ -425,17 +445,30 @@ int session_proc(session_t *session)
         ret_val = -1; goto _exit;
     }
 
-    res = session_sendMsg(session->peer_ses, buf, res);
+    len = res;
+
+    res = fax_rxUDPTL(session, udptl_buf, len);
     if(res < 0)
     {
-        app_trace(TRACE_ERR, "Session %04x. sendMsg() error (%d) %s",
-                  session->peer_ses->ses_id, res,
-                  res == -1 ? strerror(errno) : "");
         ret_val = -2; goto _exit;
     }
 
 _exit:
     return ret_val;
+}
+
+int session_procFax(session_t *session)
+{
+    int len;
+    uint8_t audio_buf[MSG_BUF_LEN * 2];
+
+    fax_txAUDIO(session, audio_buf, &len);
+    fax_rxAUDIO(session->peer_ses, audio_buf, len);
+
+    fax_txAUDIO(session->peer_ses, audio_buf, &len);
+    fax_rxAUDIO(session, audio_buf, len);
+
+    return 0;
 }
 
 /*============================================================================*/
