@@ -15,6 +15,8 @@ WARNING_FLAGS = -Wall -Werror -Wextra\
 				-Wmissing-include-dirs -Wswitch-default -Wstrict-overflow=4 -Wfloat-equal \
 				-Wundef -Wshadow
 
+WARNING_FLAGS_MINIMUM = -Wall -Wextra -Werror
+
 DEBUG = -g
 OPTIMISATION = -O0
 
@@ -25,14 +27,14 @@ SPANDSP_LIB = -L$(SPANDSP_DIR)/lib
 LIBS += $(shell pkg-config --libs-only-l $(SPANDSP_DIR)/lib/pkgconfig/spandsp.pc)
 LDFLAGS = $(SPANDSP_LIB)
 
-CFLAGS += $(WARNING_FLAGS) -I$(INCLUDE_PATH) $(SPANDSP_INCLUDE) $(DEBUG) $(OPTIMISATION)
+CFLAGS += $(WARNING_FLAGS_MINIMUM) -I$(INCLUDE_PATH) $(SPANDSP_INCLUDE) $(DEBUG) $(OPTIMISATION)
 
 OBJ_DIR = ../obj
 BIN_DIR = ../bin
 SRC_DIR = ./
 
-SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/app.c $(SRC_DIR)/msg_proc.c $(SRC_DIR)/session.c
-OBJ_FILES = $(OBJ_DIR)/main.o $(OBJ_DIR)/app.o $(OBJ_DIR)/msg_proc.o $(OBJ_DIR)/session.o
+SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/app.c $(SRC_DIR)/msg_proc.c $(SRC_DIR)/session.c $(SRC_DIR)/fax.c $(SRC_DIR)/udptl.c
+OBJ_FILES = $(OBJ_DIR)/main.o $(OBJ_DIR)/app.o $(OBJ_DIR)/msg_proc.o $(OBJ_DIR)/session.o $(OBJ_DIR)/fax.o $(OBJ_DIR)/udptl.o
 BIN = $(BIN_DIR)/fax_bu_app
 
 all: striped

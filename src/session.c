@@ -1,5 +1,6 @@
 #include "session.h"
 #include "msg_proc.h"
+#include "fax.h"
 
 #define ERROR_CALL_ID "FAIL"
 
@@ -7,6 +8,13 @@ static int session_id_array[SESSION_ID_CNT];
 
 static int ses_id_static_in = 0;
 static int ses_id_static_out = SESSION_ID_OUT;
+
+/*============================================================================*/
+
+static int session_sendMsg(const session_t *session, uint8_t *msgbuf,
+                           int msglen);
+static int session_recvMsg(session_t *session, uint8_t *msgbuf,
+                           int msglen);
 
 /*============================================================================*/
 
@@ -171,6 +179,8 @@ void session_destroy(session_t *session)
 {
     if(!session) return;
 
+    if(session->mode != FAX_SESSION_MODE_CTRL) fax_sessionDestroy(session);
+
     session_idRelease(session->ses_id);
 
     app_portRelease(session->loc_port);
@@ -289,6 +299,14 @@ int session_init(session_t *session, const char *call_id, uint32_t remote_ip,
         app_trace(TRACE_ERR, "Session %04x. Listener creation failed (%d)",
                   session->ses_id, fd);
         ret_val = -2; goto _exit;
+    }
+
+    res = fax_sessionInit(session, &session_sendMsg);
+    if(res)
+    {
+        app_trace(TRACE_ERR, "Session %04x. FAX session init failed (%d)",
+                  session->ses_id, res);
+        ret_val = -3; goto _exit;
     }
 
     app_trace(TRACE_INFO, "Session %04x. Inited successfully: Call '%s' "
