@@ -512,6 +512,12 @@ static session_t *proc_setup(const sig_message_setup_t *message)
     app_trace(TRACE_INFO, "Processing %s message call '%s'",
               sig_msgTypeStr(message->msg.type), message->msg.call_id);
 
+    if(cfg->session_cnt >= FAX_MAX_SESSIONS)
+    {
+        app_trace(TRACE_INFO, "Maximum session count is reached. Reject setup");
+        goto _exit;
+    }
+
     switch(message->mode)
     {
         case FAX_MODE_GW_GW:   out_mode = FAX_SESSION_MODE_GATEWAY;  break;
@@ -664,7 +670,15 @@ static int proc_release(const sig_message_rel_t *message)
 
             session_destroy(cs->peer_ses);
             session_destroy(cs);
+
+            break;
         }
+    }
+
+    if(i >= cfg->session_cnt)
+    {
+        app_trace(TRACE_INFO, "Processing %s message: call '%s' not found!",
+                  sig_msgTypeStr(message->msg.type), message->msg.call_id);
     }
 
     return ret_val;
