@@ -17,6 +17,7 @@
 #include <poll.h>
 #include <unistd.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include <sys/time.h>
 #include <sys/types.h>

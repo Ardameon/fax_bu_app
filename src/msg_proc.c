@@ -274,7 +274,8 @@ _exit:
  *
  */
 
-static int msg_parseSetup(const char *msg_payload, sig_message_setup_t **message)
+static int msg_parseSetup(const char *msg_payload,
+                          sig_message_setup_t **message)
 {
     int ret_val = 0, res = 0;
     sig_message_setup_t msg;
@@ -427,7 +428,8 @@ _exit:
  * ERROR abcd01234 INTERNAL_ERR
  *
  */
-static int msg_parseError(const char *msg_payload, sig_message_error_t **message)
+static int msg_parseError(const char *msg_payload,
+                          sig_message_error_t **message)
 {
     int ret_val = 0, res = 0;
     sig_message_error_t msg;
@@ -585,6 +587,7 @@ int sig_msgPrint(const sig_message_t *message, char *buf, int len)
 
     sprintf(tmp_buf,
             "%s\n"
+            "\t=============================================================\n"
             "\t call_id: '%s'\n",
             sig_msgTypeStr(message->type),
             message->call_id);
@@ -610,6 +613,9 @@ int sig_msgPrint(const sig_message_t *message, char *buf, int len)
             sprintf(p, "\t PRINT_ERROR\n");
             goto _exit;
     }
+
+    strcat(tmp_buf,
+           "\t=============================================================\n");
 
     strncpy(buf, tmp_buf, len);
 

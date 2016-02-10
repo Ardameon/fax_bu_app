@@ -170,7 +170,8 @@ session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
     new_session = calloc(1, sizeof(*new_session));
     if(!new_session)
     {
-        app_trace(TRACE_ERR, "Session. Memory allocation for new session failed");
+        app_trace(TRACE_ERR, "Session. Memory allocation "
+                  "for new session failed");
         goto _exit;
     }
 
@@ -199,6 +200,8 @@ void session_destroy(session_t *session)
     if(!session) return;
 
     if(session->mode != FAX_SESSION_MODE_CTRL) fax_sessionDestroy(session);
+
+    if(session->FLAG_IN) pthread_cancel(session->fax_proc_thread);
 
     session_idRelease(session->ses_id);
 
@@ -389,8 +392,8 @@ static int session_recvMsg(session_t *session, uint8_t *msgbuf,
     ret_val = recvfrom(session->fds, msgbuf, msglen, 0,
                        (struct sockaddr *)(&sa), &sa_len);
 
-    app_trace(TRACE_INFO, "Session %04x. RX buffer len: %d",
-              session->ses_id, ret_val);
+//    app_trace(TRACE_INFO, "Session %04x. RX buffer len: %d",
+//              session->ses_id, ret_val);
 
     if(session->mode == FAX_SESSION_MODE_CTRL)
     {
@@ -419,16 +422,14 @@ static int session_sendMsg(const session_t *session, uint8_t *msgbuf,
                      (struct sockaddr *)(&session->remaddr),
                      sizeof(session->remaddr));
 
-    app_trace(TRACE_INFO, "Session %04x. TX buffer len: %d",
-              session->ses_id, ret_val);
+//    app_trace(TRACE_INFO, "Session %04x. TX buffer len: %d",
+//              session->ses_id, ret_val);
 
 _exit:
     return ret_val;
 }
 
 /*============================================================================*/
-
-
 
 int session_proc(session_t *session)
 {
@@ -457,6 +458,8 @@ _exit:
     return ret_val;
 }
 
+/*============================================================================*/
+
 int session_procFax(session_t *session)
 {
     int len;
@@ -465,13 +468,34 @@ int session_procFax(session_t *session)
     fax_txAUDIO(session, audio_buf, &len);
     fax_rxAUDIO(session->peer_ses, audio_buf, len);
 
-    fax_txAUDIO(session->peer_ses, audio_buf, &len);
-    fax_rxAUDIO(session, audio_buf, len);
-
     return 0;
 }
 
 /*============================================================================*/
+
+static void *fax_ses_proc_thread_routine(void *arg)
+{
+	session_t *session = (session_t *)arg;
+	int timeout = 1000 * 20;
+
+	pthread_detach(pthread_self());
+
+	sleep(2);
+
+	while(1)
+	{
+		session_procFax(session);
+		session_procFax(session->peer_ses);
+
+		usleep(timeout);
+	}
+
+	pthread_exit(NULL);
+
+	return NULL;
+}
+
+pthread_t thread[100];
 
 static session_t *proc_setup(const sig_message_setup_t *message)
 {
@@ -555,6 +579,10 @@ static session_t *proc_setup(const sig_message_setup_t *message)
     cfg->pfds[cfg->session_cnt].fd = out_session->fds;
     cfg->pfds[cfg->session_cnt++].events = POLLIN;
 
+    /* Start fax processing thread  */
+    pthread_create(&in_session->fax_proc_thread, NULL,
+            fax_ses_proc_thread_routine, in_session);
+
 _exit:
     return in_session;
 }
@@ -606,7 +634,8 @@ int session_procCMD(session_t *ctrl_session)
     }
 
     app_trace(TRACE_INFO, "SIG MSG RX .......... FROM %s:%u '%s' (%d)",
-              ip2str(ctrl_session->rem_ip, 0), ctrl_session->rem_port, msg2str(buf_recv), res);
+              ip2str(ctrl_session->rem_ip, 0), ctrl_session->rem_port,
+              msg2str(buf_recv), res);
 
     /* Parse it */
     res = sig_msgParse((char *)buf_recv, &message_recv);

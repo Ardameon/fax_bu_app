@@ -23,7 +23,7 @@
 #define DEF_T38_FILL_BIT_REMOVAL  0
 #define DEF_T38_TRANSCODING_MMR   0
 #define DEF_T38_TRANSCODING_JBIG  0
-#define DEF_T38_RATE_MANAGEMENT   "transferredTCF"
+#define DEF_T38_RATE_MANAGEMNT    "transferredTCF"
 #define DEF_T38_MAX_BUFFER        72
 #define DEF_T38_MAX_DATAGRAM      316
 #define DEF_T38_VENDOR_INFO       "Tyryshkin M V"
@@ -31,7 +31,7 @@
 
 #define DEF_FAX_IDENT             "FAX_TRANSMITTER"
 #define DEF_FAX_HEADER            "FAX_DEFAULT_HEADER"
-#define DEF_FAX_VERBOSE           1
+#define DEF_FAX_VERBOSE           0
 #define DEF_FAX_USE_ECM           1
 #define DEF_FAX_DISABLE_V17       0
 
@@ -222,16 +222,26 @@ static int configure_t38(fax_params_t *f_params)
 {
 	int method = 2;
 
-	t38_set_t38_version(f_params->pvt.t38_core, f_params->t38_options.T38FaxVersion);
-	t38_set_max_buffer_size(f_params->pvt.t38_core, f_params->t38_options.T38FaxMaxBuffer);
-	t38_set_fastest_image_data_rate(f_params->pvt.t38_core, f_params->t38_options.T38MaxBitRate);
-	t38_set_fill_bit_removal(f_params->pvt.t38_core, f_params->t38_options.T38FaxFillBitRemoval);
-	t38_set_mmr_transcoding(f_params->pvt.t38_core, f_params->t38_options.T38FaxTranscodingMMR);
-	t38_set_jbig_transcoding(f_params->pvt.t38_core, f_params->t38_options.T38FaxTranscodingJBIG);
-	t38_set_max_datagram_size(f_params->pvt.t38_core, f_params->t38_options.T38FaxMaxDatagram);
+	t38_set_t38_version(f_params->pvt.t38_core,
+						f_params->t38_options.T38FaxVersion);
+	t38_set_max_buffer_size(f_params->pvt.t38_core,
+							f_params->t38_options.T38FaxMaxBuffer);
+	t38_set_fastest_image_data_rate(f_params->pvt.t38_core,
+									f_params->t38_options.T38MaxBitRate);
+	t38_set_fill_bit_removal(f_params->pvt.t38_core,
+							 f_params->t38_options.T38FaxFillBitRemoval);
+	t38_set_mmr_transcoding(f_params->pvt.t38_core,
+							f_params->t38_options.T38FaxTranscodingMMR);
+	t38_set_jbig_transcoding(f_params->pvt.t38_core,
+							 f_params->t38_options.T38FaxTranscodingJBIG);
+	t38_set_max_datagram_size(f_params->pvt.t38_core,
+							  f_params->t38_options.T38FaxMaxDatagram);
 
-	if(f_params->t38_options.T38FaxRateManagement) {
-		if(!strcasecmp(f_params->t38_options.T38FaxRateManagement, "transferredTCF")) {
+	if(f_params->t38_options.T38FaxRateManagement)
+	{
+		if(!strcasecmp(f_params->t38_options.T38FaxRateManagement,
+					   "transferredTCF"))
+		{
 			method = 1;
 		} else {
 			method = 2;
@@ -379,9 +389,12 @@ static void fax_paramsDestroy(fax_params_t *f_params)
     if(f_params->pvt.header) free(f_params->pvt.header);
     if(f_params->pvt.ident) free(f_params->pvt.ident);
 
-    if(f_params->t38_options.T38FaxUdpEC) free(f_params->t38_options.T38FaxUdpEC);
-    if(f_params->t38_options.T38VendorInfo) free(f_params->t38_options.T38VendorInfo);
-    if(f_params->t38_options.T38FaxRateManagement) free(f_params->t38_options.T38FaxRateManagement);
+    if(f_params->t38_options.T38FaxUdpEC)
+        free(f_params->t38_options.T38FaxUdpEC);
+    if(f_params->t38_options.T38VendorInfo)
+        free(f_params->t38_options.T38VendorInfo);
+    if(f_params->t38_options.T38FaxRateManagement)
+        free(f_params->t38_options.T38FaxRateManagement);
 }
 
 /*============================================================================*/
@@ -400,7 +413,7 @@ static void fax_paramsSetDefault(fax_params_t *f_params)
     f_params->t38_options.T38FaxVersion = DEF_T38_FAX_VERSION;
     f_params->t38_options.T38FaxMaxBuffer = DEF_T38_MAX_BUFFER;
     f_params->t38_options.T38FaxMaxDatagram = DEF_T38_MAX_DATAGRAM;
-    f_params->t38_options.T38FaxRateManagement = strdup(DEF_T38_RATE_MANAGEMENT);
+    f_params->t38_options.T38FaxRateManagement = strdup(DEF_T38_RATE_MANAGEMNT);
     f_params->t38_options.T38FaxTranscodingJBIG = DEF_T38_TRANSCODING_JBIG;
     f_params->t38_options.T38FaxTranscodingMMR = DEF_T38_TRANSCODING_MMR;
     f_params->t38_options.T38FaxUdpEC = strdup(DEF_T38_UDP_EC);

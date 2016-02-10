@@ -5,7 +5,7 @@
 #define IP_MAX_LEN 15
 #define NET_IFACE "eth0"
 #define CTRL_FD_IDX 0
-#define POLL_TIMEOUT 20 /* msec */
+#define POLL_TIMEOUT 40 /* msec */
 #define PORT_START 37000
 #define PORT_COUNT 200
 
@@ -229,11 +229,6 @@ static int app_procSessions()
 			pfds[i - skip_sessions] = pfds[i];
 			session[i]->sidx = i - skip_sessions;
 		}
-
-//		if(session[i]->FLAG_IN)
-//		{
-			session_procFax(session[i]);
-//		}
 
 		if(pfds[i].revents & POLLIN)
 		{

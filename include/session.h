@@ -99,6 +99,8 @@ struct session_t {
     uint8_t     FLAG_IN:1,
                 FLAG_RESERV:7;
 
+    pthread_t   fax_proc_thread;
+
     fax_params_t fax_params;
 };
 
