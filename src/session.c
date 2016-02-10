@@ -499,7 +499,7 @@ static void *fax_ses_proc_thread_routine(void *arg)
 	return NULL;
 }
 
-pthread_t thread[100];
+/*============================================================================*/
 
 static session_t *proc_setup(const sig_message_setup_t *message)
 {
@@ -602,6 +602,8 @@ _exit:
     return in_session;
 }
 
+/*============================================================================*/
+
 static sig_message_t *create_setup_answer_msg(const sig_message_t *setup_msg,
                                               session_t *in_session)
 {
@@ -638,6 +640,38 @@ _exit:
 
 /*============================================================================*/
 
+static int proc_release(const sig_message_rel_t *message)
+{
+    int ret_val = 0;
+    cfg_t *cfg = app_getCfg();
+    session_t *cs;
+    int i;
+
+    app_trace(TRACE_INFO, "Processing %s message call '%s'",
+              sig_msgTypeStr(message->msg.type), message->msg.call_id);
+
+    for(i = FAX_CTRL_FD_IDX + 1; i < cfg->session_cnt; i++)
+    {
+        if((cs = cfg->session[i]) == NULL) continue;
+
+        if(!strcmp(message->msg.call_id, cs->call_id))
+        {
+            cfg->session[i] = NULL;
+            cfg->pfds[i].fd = -1;
+
+            cfg->session[cs->peer_ses->sidx] = NULL;
+            cfg->pfds[cs->peer_ses->sidx].fd = -1;
+
+            session_destroy(cs->peer_ses);
+            session_destroy(cs);
+        }
+    }
+
+    return ret_val;
+}
+
+/*============================================================================*/
+
 static int process_sig_message(const sig_message_t *received_msg,
                                       sig_message_t **answer_msg)
 {
@@ -650,6 +684,10 @@ static int process_sig_message(const sig_message_t *received_msg,
             in_session = proc_setup((sig_message_setup_t *)received_msg);
             *answer_msg = create_setup_answer_msg(received_msg, in_session);
             if(!in_session) ret_val = -1;
+            break;
+
+        case FAX_MSG_RELEASE:
+            proc_release((sig_message_rel_t *)received_msg);
             break;
 
         default:

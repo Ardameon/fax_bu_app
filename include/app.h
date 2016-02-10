@@ -32,6 +32,8 @@
 
 #define FAX_MAX_SESSIONS 80
 
+#define FAX_CTRL_FD_IDX 0
+
 #define FAX_CONTROL_PORT 23232
 
 struct session_t;

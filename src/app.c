@@ -4,7 +4,6 @@
 
 #define IP_MAX_LEN 15
 #define NET_IFACE "eth0"
-#define CTRL_FD_IDX 0
 #define POLL_TIMEOUT 40 /* msec */
 #define PORT_START 37000
 #define PORT_COUNT 200
@@ -110,7 +109,7 @@ static int app_InitControlFD()
     app_trace(TRACE_INFO, "App. Create control session: %s:%u",
               ip2str(cfg->local_ip, 0), cfg->local_port);
 
-    session = session_create(FAX_SESSION_MODE_CTRL, CTRL_FD_IDX,
+    session = session_create(FAX_SESSION_MODE_CTRL, FAX_CTRL_FD_IDX,
                              FAX_SESSION_DIR_IN);
     if(!session)
     {
@@ -127,9 +126,9 @@ static int app_InitControlFD()
         ret_val = -2; goto _exit;
     }
 
-    cfg->pfds[CTRL_FD_IDX].fd = session->fds;
-    cfg->pfds[CTRL_FD_IDX].events = POLLIN;
-    cfg->session[CTRL_FD_IDX] = session;
+    cfg->pfds[FAX_CTRL_FD_IDX].fd = session->fds;
+    cfg->pfds[FAX_CTRL_FD_IDX].events = POLLIN;
+    cfg->session[FAX_CTRL_FD_IDX] = session;
 
     cfg->session_cnt = 1;
 
@@ -214,7 +213,7 @@ static int app_procSessions()
 	int session_cnt = cfg->session_cnt;
 	session_t **session = cfg->session;
 
-	for(i = CTRL_FD_IDX + 1, skip_sessions = 0; i < session_cnt; i++)
+	for(i = FAX_CTRL_FD_IDX + 1, skip_sessions = 0; i < session_cnt; i++)
 	{
 		if(pfds[i].fd == -1)
 		{
@@ -247,8 +246,8 @@ static int app_procCMD()
 {
 	cfg_t *cfg = app_getCfg();
 
-	return (cfg->pfds[CTRL_FD_IDX].revents & POLLIN) ?
-				session_procCMD(cfg->session[CTRL_FD_IDX]) : -1;
+	return (cfg->pfds[FAX_CTRL_FD_IDX].revents & POLLIN) ?
+				session_procCMD(cfg->session[FAX_CTRL_FD_IDX]) : -1;
 }
 
 /*============================================================================*/
