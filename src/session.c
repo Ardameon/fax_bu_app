@@ -478,8 +478,12 @@ static void *fax_ses_proc_thread_routine(void *arg)
 	session_t *session = (session_t *)arg;
 	int timeout = 1000 * 20;
 
+	app_trace(TRACE_INFO, "Fax processing thread for call '%s' started (%lu)",
+			  session->call_id, pthread_self());
+
 	pthread_detach(pthread_self());
 
+	/* Don't remove this sleep() */
 	sleep(2);
 
 	while(1)
@@ -566,6 +570,21 @@ static session_t *proc_setup(const sig_message_setup_t *message)
         goto _exit;
     }
 
+    /* Start fax processing thread  */
+    res = pthread_create(&in_session->fax_proc_thread, NULL,
+                         fax_ses_proc_thread_routine, in_session);
+
+    if(res)
+    {
+        app_trace(TRACE_ERR, "Creating fax processing thread "
+                  "for call '%s' failed (%d)",
+                  message->msg.call_id, res);
+        session_destroy(out_session);
+        session_destroy(in_session);
+        in_session = NULL;
+        goto _exit;
+    }
+
     in_session->peer_ses = out_session;
     out_session->peer_ses = in_session;
 
@@ -579,35 +598,69 @@ static session_t *proc_setup(const sig_message_setup_t *message)
     cfg->pfds[cfg->session_cnt].fd = out_session->fds;
     cfg->pfds[cfg->session_cnt++].events = POLLIN;
 
-    /* Start fax processing thread  */
-    pthread_create(&in_session->fax_proc_thread, NULL,
-            fax_ses_proc_thread_routine, in_session);
-
 _exit:
     return in_session;
 }
 
+static sig_message_t *create_setup_answer_msg(const sig_message_t *setup_msg,
+                                              session_t *in_session)
+{
+    sig_message_t *answer_msg = NULL;
+    int res = 0;
+
+    if(in_session == NULL)
+    {
+        /* Processing failed */
+        res = sig_msgCreateError(setup_msg->call_id, FAX_ERROR_INTERNAL,
+                               (sig_message_error_t **)(&answer_msg));
+        if(res < 0)
+        {
+            app_trace(TRACE_ERR, "Setup answer. ERROR msg creating failed (%d)",
+                      res);
+            goto _exit;
+        }
+    } else {
+        /* Processed successfully */
+        res = sig_msgCreateOk(setup_msg->call_id, in_session->loc_ip,
+                               in_session->loc_port,
+                               (sig_message_ok_t **)(&answer_msg));
+        if(res < 0)
+        {
+            app_trace(TRACE_ERR, "Setup answer. OK msg creating failed (%d)",
+                      res);
+            goto _exit;
+        }
+    }
+
+_exit:
+    return answer_msg;
+}
+
 /*============================================================================*/
 
-static session_t *process_sig_message(const sig_message_t *message)
+static int process_sig_message(const sig_message_t *received_msg,
+                                      sig_message_t **answer_msg)
 {
     session_t *in_session = NULL;
+    int ret_val = 0;
 
-    switch(message->type)
+    switch(received_msg->type)
     {
         case FAX_MSG_SETUP:
-            in_session = proc_setup((sig_message_setup_t *)message);
+            in_session = proc_setup((sig_message_setup_t *)received_msg);
+            *answer_msg = create_setup_answer_msg(received_msg, in_session);
+            if(!in_session) ret_val = -1;
             break;
 
         default:
             app_trace(TRACE_INFO, "Message '%s' can't be handeled."
                       " Only %s allowed",
-                      sig_msgTypeStr(message->type),
+                      sig_msgTypeStr(received_msg->type),
                       sig_msgTypeStr(FAX_MSG_SETUP));
             break;
     }
 
-    return in_session;
+    return ret_val;
 }
 
 /*============================================================================*/
@@ -618,10 +671,9 @@ int session_procCMD(session_t *ctrl_session)
     uint8_t buf_send[MSG_BUF_LEN];
     int buf_len;
     char msg_str[512];
-    int res, ress, ret_val = 0;
+    int res, ret_val = 0;
     sig_message_t *message_recv = NULL;
     sig_message_t *message_send = NULL;
-    session_t *in_session;
 
     /* Receive signaling message */
     res = session_recvMsg(ctrl_session, buf_recv, MSG_BUF_LEN);
@@ -641,13 +693,14 @@ int session_procCMD(session_t *ctrl_session)
     res = sig_msgParse((char *)buf_recv, &message_recv);
     if(res < 0)
     {
+        /* Parsing error - send ERROR message */
         app_trace(TRACE_ERR, "Session %04x. Message parsing error (%d)",
                   ctrl_session->ses_id, res);
         ret_val = -2;
 
-        ress = sig_msgCreateError(ERROR_CALL_ID, FAX_ERROR_INVALID_MESSAGE,
-                                  (sig_message_error_t **)(&message_send));
-        goto _compose_msg;
+        sig_msgCreateError(ERROR_CALL_ID, FAX_ERROR_INVALID_MESSAGE,
+                           (sig_message_error_t **)(&message_send));
+        goto _send_answer_msg;
     }
 
     sig_msgPrint(message_recv, msg_str, sizeof(msg_str));
@@ -655,52 +708,36 @@ int session_procCMD(session_t *ctrl_session)
               ctrl_session->ses_id, msg_str);
 
     /* Process received message */
-    in_session = process_sig_message(message_recv);
+    res = process_sig_message(message_recv, &message_send);
 
-    if(in_session == NULL)
+    if(res)
     {
         /* Processing failed */
         app_trace(TRACE_ERR, "Session %04x. Processing CMD %s "
-                  "(call_id: '%s') failed",
+                  "(call_id: '%s') failed (%d)",
                   ctrl_session->ses_id, sig_msgTypeStr(message_recv->type),
-                  message_recv->call_id);
-
-        ress = sig_msgCreateError(message_recv->call_id, FAX_ERROR_INTERNAL,
-                               (sig_message_error_t **)(&message_send));
-        if(ress < 0)
-        {
-            app_trace(TRACE_ERR, "Session %04x. ERROR msg creating failed (%d)",
-                      ctrl_session->ses_id, ress);
-            ret_val = -3; goto _exit_1;
-        }
-    } else {
-        /* Processed successfully */
-        ress = sig_msgCreateOk(message_recv->call_id, in_session->loc_ip,
-                               in_session->loc_port,
-                               (sig_message_ok_t **)(&message_send));
-        if(ress < 0)
-        {
-            app_trace(TRACE_ERR, "Session %04x. OK msg creating failed (%d)",
-                      ctrl_session->ses_id, ress);
-            ret_val = -4; goto _exit_1;
-        }
+                  message_recv->call_id, res);
+        ret_val = -3;
     }
+
+_send_answer_msg:
+    /* If answer message not created - no need to send it */
+    if(message_send == NULL) goto _exit_1;
 
     sig_msgPrint(message_send, msg_str, sizeof(msg_str));
     app_trace(TRACE_INFO, "Session %04x. Message to send: %s",
               ctrl_session->ses_id, msg_str);
 
-_compose_msg:
     buf_len = sig_msgCompose(message_send, (char *)buf_send, sizeof(buf_send));
 
     /* Send answer */
     res = session_sendMsg(ctrl_session, buf_send, buf_len);
-    if(ress < 0)
+    if(res < 0)
     {
         app_trace(TRACE_ERR, "Session %04x. Message sending error (%d) %s",
                   ctrl_session->ses_id, res,
                   (res == -1) ? strerror(errno) : "");
-        ret_val = -6;
+        ret_val = -4;
     }
 
     app_trace(TRACE_INFO, "SIG MSG TX .......... TO %s:%u '%s' (%d)",
