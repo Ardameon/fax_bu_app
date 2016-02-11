@@ -1,36 +1,41 @@
 .PHONY: all clean
 
-CC = gcc
-STRIP = strip
+CC = $(CROSS_COMPILER)gcc
+STRIP = $(CROSS_COMPILER)strip
 
-INCLUDE_PATH = ../include
+PLATFORM=x86_64
+
+ifeq ($(CROSS_COMPILER),arm-mv5sft-linux-gnueabi-)
+PLATFORM=mv
+endif
 
 WARNING_FLAGS_MAXIMUM_PARANOIA = -Wall -Werror -Wextra -Wconversion -Wsign-conversion \
                                  -Winit-self -Wunreachable-code -Wformat-nonliteral -Wformat-security \
-								 -Wmissing-include-dirs -Wswitch-default -Wstrict-overflow=4 -Wfloat-equal \
-								 -Wundef -Wshadow -Wbad-function-cast -Wcast-align -Wwrite-strings -Wlogical-op
+                                 -Wmissing-include-dirs -Wswitch-default -Wstrict-overflow=4 -Wfloat-equal \
+                                 -Wundef -Wshadow -Wbad-function-cast -Wcast-align -Wwrite-strings -Wlogical-op
 
-WARNING_FLAGS = -Wall -Werror -Wextra\
-                -Winit-self -Wunreachable-code -Wformat-nonliteral -Wformat-security \
-				-Wmissing-include-dirs -Wswitch-default -Wstrict-overflow=4 -Wfloat-equal \
-				-Wundef -Wshadow
+WARNING_FLAGS_HARD = -Wall -Werror -Wextra\
+                     -Winit-self -Wunreachable-code -Wformat-nonliteral -Wformat-security \
+                     -Wmissing-include-dirs -Wswitch-default -Wstrict-overflow=4 -Wfloat-equal \
+                     -Wundef -Wshadow
 
-WARNING_FLAGS_MINIMUM = -Wall -Wextra -Werror
+WARNING_FLAGS_MINIMUM = -Wall -Wextra
 
-DEBUG = -g
-OPTIMISATION = -O0
+WARNING_FLAGS = $(WARNING_FLAGS_MINIMUM) -Werror
 
-SPANDSP_DIR = ../spandsp/x86_64/deploy/usr/local
+WARNINGS = $(WARNING_FLAGS)
+
+ifeq ($(PLATFORM),mv)
+WARNINGS = $(WARNING_FLAGS_MINIMUM)
+endif
+
 SPANDSP_INCLUDE = -I$(SPANDSP_DIR)/include
 SPANDSP_LIB = -L$(SPANDSP_DIR)/lib
 
-LIBS += $(shell pkg-config --libs-only-l $(SPANDSP_DIR)/lib/pkgconfig/spandsp.pc)
-LDFLAGS = $(SPANDSP_LIB)
+CFLAGS += $(WARNINGS) -I$(INCLUDE_PATH) -pthread
 
-CFLAGS += $(WARNING_FLAGS_MINIMUM) -I$(INCLUDE_PATH) $(SPANDSP_INCLUDE) $(DEBUG) $(OPTIMISATION) -pthread
-
-OBJ_DIR = ../obj
-BIN_DIR = ../bin
+OBJ_DIR = ../build/$(PLATFORM)/obj
+BIN_DIR = ../build/$(PLATFORM)/bin
 SRC_DIR = ./
 
 SRC_FILES = $(SRC_DIR)/main.c $(SRC_DIR)/app.c $(SRC_DIR)/msg_proc.c $(SRC_DIR)/session.c $(SRC_DIR)/fax.c $(SRC_DIR)/udptl.c
