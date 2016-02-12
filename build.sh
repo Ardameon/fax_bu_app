@@ -76,6 +76,9 @@ case "$BUILD" in
     mv)
         ARCH=mv
         ;;
+    mv2)
+        ARCH=mv2
+        ;;
     x64)
         ARCH=x86_64
         ;;
@@ -99,6 +102,14 @@ case "$BUILD" in
         export LDFLAGS="${LDFLAGS}"
         export CROSS_COMPILER='arm-mv5sft-linux-gnueabi-'
         export LIBS="${LIBS}"
+        make -C ./src 
+        ;;
+    mv2)
+        check_spandsp_lib
+        export CFLAGS="${CFLAGS}"
+        export LDFLAGS="${LDFLAGS}"
+        export LIBS="${LIBS}"
+        export CROSS_COMPILER='arm-marvell-linux-gnueabi-'
         make -C ./src 
         ;;
     x64)

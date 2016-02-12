@@ -14,6 +14,10 @@ case "$MODE" in
         ARCH="mv"
         HOST=arm-mv5sft-linux-gnueabi
     ;;
+    "mv2" )
+        ARCH="mv2"
+        HOST=arm-marvell-linux-gnueabi
+    ;;
     "x64" | "x86_64" )
         ARCH="x86_64"
         HOST=x86_64-linux-gnu

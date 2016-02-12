@@ -9,6 +9,10 @@ ifeq ($(CROSS_COMPILER),arm-mv5sft-linux-gnueabi-)
 PLATFORM=mv
 endif
 
+ifeq ($(CROSS_COMPILER),arm-marvell-linux-gnueabi-)
+PLATFORM=mv2
+endif
+
 WARNING_FLAGS_MAXIMUM_PARANOIA = -Wall -Werror -Wextra -Wconversion -Wsign-conversion \
                                  -Winit-self -Wunreachable-code -Wformat-nonliteral -Wformat-security \
                                  -Wmissing-include-dirs -Wswitch-default -Wstrict-overflow=4 -Wfloat-equal \

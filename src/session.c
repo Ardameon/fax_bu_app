@@ -163,8 +163,7 @@ session_t *session_create(session_mode_e mode, int sidx, session_dir_e dir)
     if(sidx < 0 ||
        mode == FAX_SESSION_MODE_UNKNOWN ||
        mode > FAX_SESSION_MODE_TERMINAL ||
-       dir > FAX_SESSION_DIR_IN ||
-       dir < FAX_SESSION_DIR_OUT)
+       dir > FAX_SESSION_DIR_IN)
     {
         goto _exit;
     }
