@@ -97,7 +97,8 @@ struct session_t {
     session_mode_e  mode;
 
     uint8_t     FLAG_IN:1,
-                FLAG_RESERV:7;
+                FLAG_THREAD_ACTIVE:1,
+                FLAG_RESERV:6;
 
     pthread_t   fax_proc_thread;
 

@@ -94,6 +94,7 @@ export INCLUDE_PATH="`pwd`/include"
 case "$BUILD" in
     mv)
         check_spandsp_lib
+#        export CFLAGS="${CFLAGS} -std=c99 -D_BSD_SOURCE"
         export CFLAGS="${CFLAGS}"
         export LDFLAGS="${LDFLAGS}"
         export CROSS_COMPILER='arm-mv5sft-linux-gnueabi-'

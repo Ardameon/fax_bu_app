@@ -111,6 +111,7 @@ static int app_InitControlFD()
 
     session = session_create(FAX_SESSION_MODE_CTRL, FAX_CTRL_FD_IDX,
                              FAX_SESSION_DIR_IN);
+
     if(!session)
     {
         app_trace(TRACE_ERR, "App. Control session creating failed");
@@ -247,7 +248,7 @@ static int app_procCMD()
 	cfg_t *cfg = app_getCfg();
 
 	return (cfg->pfds[FAX_CTRL_FD_IDX].revents & POLLIN) ?
-				session_procCMD(cfg->session[FAX_CTRL_FD_IDX]) : -1;
+			session_procCMD(cfg->session[FAX_CTRL_FD_IDX]) : -1;
 }
 
 /*============================================================================*/

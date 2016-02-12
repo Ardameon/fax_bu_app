@@ -4,6 +4,8 @@
 
 #define ERROR_CALL_ID "FAIL"
 
+#define FAX_PROC_THREAD_TIMEOUT 2000 /* usec */
+
 static int session_id_array[SESSION_ID_CNT];
 
 static int ses_id_static_in = 0;
@@ -201,7 +203,7 @@ void session_destroy(session_t *session)
 
     if(session->mode != FAX_SESSION_MODE_CTRL) fax_sessionDestroy(session);
 
-    if(session->FLAG_IN) pthread_cancel(session->fax_proc_thread);
+    if(session->FLAG_THREAD_ACTIVE) pthread_cancel(session->fax_proc_thread);
 
     session_idRelease(session->ses_id);
 
@@ -476,7 +478,7 @@ int session_procFax(session_t *session)
 static void *fax_ses_proc_thread_routine(void *arg)
 {
 	session_t *session = (session_t *)arg;
-	int timeout = 1000 * 20;
+	int timeout = FAX_PROC_THREAD_TIMEOUT;
 
 	app_trace(TRACE_INFO, "Fax processing thread for call '%s' started (%lu)",
 			  session->call_id, pthread_self());
@@ -590,6 +592,8 @@ static session_t *proc_setup(const sig_message_setup_t *message)
         in_session = NULL;
         goto _exit;
     }
+
+    in_session->FLAG_THREAD_ACTIVE = 1;
 
     in_session->peer_ses = out_session;
     out_session->peer_ses = in_session;

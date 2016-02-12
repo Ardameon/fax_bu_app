@@ -33,7 +33,7 @@
 #define DEF_FAX_HEADER            "FAX_DEFAULT_HEADER"
 #define DEF_FAX_VERBOSE           0
 #define DEF_FAX_USE_ECM           1
-#define DEF_FAX_DISABLE_V17       0
+#define DEF_FAX_DISABLE_V17       1
 
 #define MAX_FEC_ENTRIES           4
 #define MAX_FEC_SPAN              4
@@ -94,7 +94,7 @@ static int t38_tx_packet_handler(t38_core_state_t *s, void *user_data,
 	session = f_params->session;
 
 	if((udptl_packtlen = udptl_build_packet(f_params->pvt.udptl_state,
-											pkt, buf, len)) > 0)
+						pkt, buf, len)) > 0)
 	{
 		for(x = 0; x < count; x++)
 		{
@@ -227,7 +227,7 @@ static int configure_t38(fax_params_t *f_params)
 	t38_set_max_buffer_size(f_params->pvt.t38_core,
 							f_params->t38_options.T38FaxMaxBuffer);
 	t38_set_fastest_image_data_rate(f_params->pvt.t38_core,
-									f_params->t38_options.T38MaxBitRate);
+							f_params->t38_options.T38MaxBitRate);
 	t38_set_fill_bit_removal(f_params->pvt.t38_core,
 							 f_params->t38_options.T38FaxFillBitRemoval);
 	t38_set_mmr_transcoding(f_params->pvt.t38_core,
