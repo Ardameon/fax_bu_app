@@ -28,6 +28,8 @@ case "$MODE" in
     ;;
 esac
 
+export CFLAGS="-fno-omit-frame-pointer"
+
 [ -e ./Makefile ] && make distclean
 
 INSTALL_PATH=`pwd`/$ARCH/deploy

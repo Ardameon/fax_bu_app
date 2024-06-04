@@ -35,7 +35,7 @@ cd $CURDIR/libtiff/
 ./make-and-install.sh $ARCH
 cd -
 
-export CFLAGS="-I$CURDIR/libtiff/$ARCH/deploy/usr/local/include `pkg-config --cflags-only-other $CURDIR/libtiff/$ARCH/deploy/usr/local/lib/pkgconfig/libtiff-4.pc`"
+export CFLAGS="-I$CURDIR/libtiff/$ARCH/deploy/usr/local/include -fno-omit-frame-pointer `pkg-config --cflags-only-other $CURDIR/libtiff/$ARCH/deploy/usr/local/lib/pkgconfig/libtiff-4.pc`"
 export CPPFLAGS=-I$CURDIR/libtiff/$ARCH/deploy/usr/local/include
 export LDFLAGS=-L$CURDIR/libtiff/$ARCH/deploy/usr/local/lib
 export LIBS=`pkg-config --libs-only-l --static $CURDIR/libtiff/$ARCH/deploy/usr/local/lib/pkgconfig/libtiff-4.pc`

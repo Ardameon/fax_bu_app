@@ -10,6 +10,7 @@ BUILD=$1
 CFLAGS=
 LIBS=
 DEBUG=
+PERF=
 CLEAN=
 
 check_opt()
@@ -19,6 +20,9 @@ check_opt()
     case "$OPTION" in
     dbg)
         DEBUG=yes
+    ;;
+    perf)
+        PERF=yes
     ;;
     clean)
         CLEAN=yes
@@ -72,6 +76,10 @@ else
     CFLAGS="${CFLAGS} -O2 -DNDEBUG -g"
 fi
 
+if [ -n "$PERF" ]; then
+    CFLAGS="${CFLAGS} -fno-omit-frame-pointer"
+fi
+
 case "$BUILD" in
     mv)
         ARCH=mv
@@ -102,7 +110,7 @@ case "$BUILD" in
         export LDFLAGS="${LDFLAGS}"
         export CROSS_COMPILER='arm-mv5sft-linux-gnueabi-'
         export LIBS="${LIBS}"
-        make -C ./src 
+        make -C ./src
         ;;
     mv2)
         check_spandsp_lib
@@ -110,14 +118,14 @@ case "$BUILD" in
         export LDFLAGS="${LDFLAGS}"
         export LIBS="${LIBS}"
         export CROSS_COMPILER='arm-marvell-linux-gnueabi-'
-        make -C ./src 
+        make -C ./src
         ;;
     x64)
         check_spandsp_lib
         export CFLAGS="${CFLAGS} -m64"
         export LDFLAGS="${LDFLAGS}"
         export LIBS="${LIBS}"
-        make -C ./src 
+        make -C ./src
         ;;
     *)
         echo "platform is not defined"
