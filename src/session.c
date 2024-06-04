@@ -464,7 +464,7 @@ _exit:
 int session_procFax(session_t *session)
 {
     int len;
-    uint8_t audio_buf[MSG_BUF_LEN * 2];
+    uint8_t audio_buf[MSG_BUF_LEN * 2] = {0};
 
     fax_txAUDIO(session, audio_buf, &len);
     fax_rxAUDIO(session->peer_ses, audio_buf, len);

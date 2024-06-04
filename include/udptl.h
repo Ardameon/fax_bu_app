@@ -31,7 +31,7 @@
 
 #define UDPTL_BUF_MASK              15
 
-typedef int (udptl_rx_packet_handler_t) (void *user_data, const uint8_t msg[], int len, int seq_no);
+typedef int (udptl_rx_packet_handler_t) (void *user_data, const uint8_t msg[], int len, uint16_t seq_no);
 
 typedef struct
 {
