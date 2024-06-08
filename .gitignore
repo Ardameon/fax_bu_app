@@ -31,4 +31,9 @@
 # Debug files
 *.dSYM/
 
+build/
+compile_commands.json
+spandsp/spandsp-0.0.6/autom4te.cache/
+spandsp/spandsp-0.0.6/configure~
+
 fax_bu_app*
